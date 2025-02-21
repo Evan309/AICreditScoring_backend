@@ -1,4 +1,3 @@
-import NueralNetwork as nn
+import NeuralNetwork as nn
 import numpy as np
-
 
