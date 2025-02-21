@@ -1,6 +1,7 @@
 import pandas as pd
+import numpy as np
 
-df = pd.read_csv("/Users/evanshi/Desktop/Personal-Projects/AICreditScoring/DataSet/test.csv")
+df = pd.read_csv("/Users/evanshi/Desktop/Personal-Projects/AICreditScoring/data/raw/test.csv")
 
 # drop ID, Customer_ID, Name, SSN, Month
 # does not effect classification in Neural Network
@@ -15,8 +16,8 @@ df.drop_duplicates(inplace=True)
 
 # drop na values
 df.dropna(inplace=True)
+df["occupation"] = df["occupation"].replace({"_______" : "Other"})
+df["payment_behaviour"] = df["payment_behaviour"].replace({"!@9#%8" : np.nan})
+df.dropna(inplace=True)
 
-unique_jobs = df["occupation"].unique()
-print(unique_jobs)
-print(df.columns)
-
+print(df)
