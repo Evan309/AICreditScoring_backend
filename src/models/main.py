@@ -7,10 +7,57 @@ X_train = df_train.drop(columns="Credit_Score")
 y_train = df_train["Credit_Score"]
 
 X, y = X_train.to_numpy(), y_train.to_numpy()
+X, y = X.astype(np.float32), y.astype(int)
 
-dense1 = nn.Layer_Dense(46, 64)
+def one_hot_encode(y, num_classes=3):
+    one_hot = np.zeros((len(y), num_classes))
+    one_hot[np.arange(len(y)), y] = 1
+    return one_hot
+
+y = one_hot_encode(y)
+print(y)
+
+dense1 = nn.Layer_Dense(46, 128)
 activation1 = nn.Activation_ReLU()
-dense2 = nn.Layer_Dense(64, 64)
+dense2 = nn.Layer_Dense(128, 128)
 activation2 = nn.Activation_ReLU()
-dense3 = nn.Layer_Dense(64, 3)
+dense3 = nn.Layer_Dense(128, 64)
+activation3 = nn.Activation_ReLU()
+dense4 = nn.Layer_Dense(64, 3)
 
+optimizer = nn.Optimizer_Adam(learning_rate=0.001, decay=1e-3)
+loss_activation = nn.Activation_Softmax_Loss_CategoricalCrossentropy()
+
+for epoch in range(30001):
+    dense1.forward(X)
+    activation1.forward(dense1.output)
+    dense2.forward(activation1.output)
+    activation2.forward(dense2.output)
+    dense3.forward(activation2.output)
+    activation3.forward(dense3.output)
+    dense4.forward(activation3.output)
+
+    loss = loss_activation.forward(dense4.output, y)
+    predictions = np.argmax(loss_activation.output, axis = 1)
+    if len(y.shape) == 2:
+        y = np.argmax(y, axis = 1)
+    accuracy = np.mean(predictions == y)
+
+    if not epoch % 100:
+        print(f"epoch: {epoch}, acc: {accuracy}, loss: {loss}, lr: {optimizer.current_learning_rate}")
+    
+    loss_activation.backward(loss_activation.output, y)
+    dense4.backward(loss_activation.dinputs)
+    activation3.backward(dense4.dinputs)
+    dense3.backward(activation3.dinputs)
+    activation2.backward(dense3.dinputs)
+    dense2.backward(activation2.dinputs)
+    activation1.backward(dense2.dinputs)
+    dense1.backward(activation1.dinputs)
+
+    optimizer.pre_update_params()
+    optimizer.update_params(dense1)
+    optimizer.update_params(dense2)
+    optimizer.update_params(dense3)
+    optimizer.update_params(dense4)
+    optimizer.post_update_params()
