@@ -133,5 +133,5 @@ df_test = process_data("/Users/evanshi/Desktop/Personal-Projects/AICreditScoring
 standardized_train = standardize_data(df_train)
 standardized_test = standardize_data(df_test)
 
-df_train.to_csv("/Users/evanshi/Desktop/Personal-Projects/AICreditScoring/data/processed/processed_train.csv", index=False)
-df_test.to_csv("/Users/evanshi/Desktop/Personal-Projects/AICreditScoring/data/processed/processed_test.csv", index=False)
+# df_train.to_csv("/Users/evanshi/Desktop/Personal-Projects/AICreditScoring/data/processed/processed_train.csv", index=False)
+# df_test.to_csv("/Users/evanshi/Desktop/Personal-Projects/AICreditScoring/data/processed/processed_test.csv", index=False)
