@@ -21,11 +21,11 @@ dense1 = nn.Layer_Dense(46, 128)
 activation1 = nn.Activation_ReLU()
 dense2 = nn.Layer_Dense(128, 128)
 activation2 = nn.Activation_ReLU()
-dense3 = nn.Layer_Dense(128, 64)
+dense3 = nn.Layer_Dense(128, 128)
 activation3 = nn.Activation_ReLU()
-dense4 = nn.Layer_Dense(64, 3)
+dense4 = nn.Layer_Dense(128, 3)
 
-optimizer = nn.Optimizer_Adam(learning_rate=0.001, decay=1e-3)
+optimizer = nn.Optimizer_Adam(learning_rate=0.005, decay=1e-3)
 loss_activation = nn.Activation_Softmax_Loss_CategoricalCrossentropy()
 
 for epoch in range(30001):
