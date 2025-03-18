@@ -1,7 +1,14 @@
 import pandas as pd
 import numpy as np
+from dotenv import load_dotenv
 from sklearn.preprocessing import MultiLabelBinarizer, StandardScaler
 import logging
+import os
+
+# retrieve file path from env
+load_dotenv()
+train_file_path = os.getenv("TRAIN_FILE_PATH")
+test_file_path = os.getenv("TEST_FILE_PATH")
 
 # Initialize preprocessors
 mlb = MultiLabelBinarizer()
@@ -138,5 +145,5 @@ standardized_train = standardize_data(df_train)
 standardized_test = standardize_data(df_test)
 
 # Optionally save the processed data (uncomment these lines to save)
-standardized_train.to_csv("/Users/evanshi/Desktop/Personal-Projects/AICreditScoring/data/processed/processed_train.csv", index=False)
-standardized_test.to_csv("/Users/evanshi/Desktop/Personal-Projects/AICreditScoring/data/processed/processed_test.csv", index=False)
+standardized_train.to_csv(train_file_path, index=False)
+standardized_test.to_csv(test_file_path, index=False)

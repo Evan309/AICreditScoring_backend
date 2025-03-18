@@ -1,8 +1,15 @@
 import NeuralNetwork as nn
 import numpy as np
 import pandas as pd
+from dotenv import load_dotenv
+import os
 
-df_train = pd.read_csv("/Users/evanshi/Desktop/Personal-Projects/AICreditScoring/data/processed/processed_train.csv")
+# retrieve file path from env
+load_dotenv()
+train_file_path = os.getenv("TRAIN_FILE_PATH")
+
+# split and process train data
+df_train = pd.read_csv(train_file_path)
 X_train = df_train.drop(columns="Credit_Score")
 y_train = df_train["Credit_Score"]
 
@@ -17,6 +24,7 @@ def one_hot_encode(y, num_classes=3):
 y = one_hot_encode(y)
 print(y)
 
+# initialize layers
 dense1 = nn.Layer_Dense(46, 128)
 activation1 = nn.Activation_ReLU()
 dense2 = nn.Layer_Dense(128, 128)
@@ -25,9 +33,11 @@ dense3 = nn.Layer_Dense(128, 128)
 activation3 = nn.Activation_ReLU()
 dense4 = nn.Layer_Dense(128, 3)
 
+# initialize optimizers
 optimizer = nn.Optimizer_Adam(learning_rate=0.005, decay=1e-3)
 loss_activation = nn.Activation_Softmax_Loss_CategoricalCrossentropy()
 
+# train model with 30001 epochs
 for epoch in range(30001):
     dense1.forward(X)
     activation1.forward(dense1.output)
