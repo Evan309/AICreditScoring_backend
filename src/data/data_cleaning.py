@@ -136,14 +136,20 @@ def standardize_data(df):
     logging.info("Data standardized successfully.")
     return standardized_data
 
-# Load and process train and test data
-df_train = process_data("/Users/evanshi/Desktop/Personal-Projects/AICreditScoring/data/raw/train.csv")
-df_test = process_data("/Users/evanshi/Desktop/Personal-Projects/AICreditScoring/data/raw/test.csv")
 
-# Standardize the processed data
-standardized_train = standardize_data(df_train)
-standardized_test = standardize_data(df_test)
+def main():    
+    # Load and process train and test data
+    df_train = process_data("/Users/evanshi/Desktop/Personal-Projects/AICreditScoring/data/raw/train.csv")
+    df_test = process_data("/Users/evanshi/Desktop/Personal-Projects/AICreditScoring/data/raw/test.csv")
 
-# Optionally save the processed data (uncomment these lines to save)
-standardized_train.to_csv(train_file_path, index=False)
-standardized_test.to_csv(test_file_path, index=False)
+    # Standardize the processed data
+    standardized_train = standardize_data(df_train)
+    standardized_test = standardize_data(df_test)
+
+    # Optionally save the processed data (uncomment these lines to save)
+    standardized_train.to_csv(train_file_path, index=False)
+    standardized_test.to_csv(test_file_path, index=False)
+
+
+if __name__ == "__main__":
+    main()
