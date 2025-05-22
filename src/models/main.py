@@ -3,10 +3,12 @@ import numpy as np
 import pandas as pd
 from dotenv import load_dotenv
 import os
+from datetime import datetime
 
 # retrieve file path from env
 load_dotenv()
 train_file_path = os.getenv("TRAIN_FILE_PATH")
+models_dir = os.getenv("MODELS_DIR")
 
 # split and process train data
 df_train = pd.read_csv(train_file_path)
@@ -25,7 +27,7 @@ y = one_hot_encode(y)
 print(y)
 
 # initialize layers
-dense1 = nn.Layer_Dense(46, 128)
+dense1 = nn.Layer_Dense(45, 128)
 activation1 = nn.Activation_ReLU()
 dense2 = nn.Layer_Dense(128, 128)
 activation2 = nn.Activation_ReLU()
@@ -71,3 +73,31 @@ for epoch in range(30001):
     optimizer.update_params(dense3)
     optimizer.update_params(dense4)
     optimizer.post_update_params()
+
+# Generate timestamp for unique filename
+timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+model_filename = f'credit_scoring_model_{timestamp}.npz'
+model_path = os.path.join(models_dir, model_filename)
+
+# Save the model using numpy's savez
+np.savez(
+    model_path,
+    # Layer 1
+    dense1_weights = dense1.weights,
+    dense1_biases = dense1.biases,
+    # Layer 2
+    dense2_weights = dense2.weights,
+    dense2_biases = dense2.biases,
+    # Layer 3
+    dense3_weights = dense3.weights,
+    dense3_biases = dense3.biases,
+    # Layer 4
+    dense4_weights = dense4.weights,
+    dense4_biases = dense4.biases,
+    # Architecture info
+    input_size = np.array([45]),
+    hidden_size = np.array([128]),
+    output_size = np.array([3])
+)
+
+print(f"\nModel saved successfully to: {model_path}")
