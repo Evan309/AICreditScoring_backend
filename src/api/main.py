@@ -5,7 +5,15 @@ import numpy as np
 import pandas as pd
 from typing import Optional
 import os
+import sys
+import logging
 
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+# Add the src directory to the Python path
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from data.data_cleaning import process_input_data, standardize_data
 from models.NeuralNetwork import Layer_Dense, Activation_ReLU, Activation_Softmax
@@ -102,41 +110,67 @@ model = CreditScoreModel()
 def load_model():
     try:
         models_dir = os.getenv("MODELS_DIR")
-        model_path = os.path.join(models_dir, '/credit_scoring_model.npz')
+        if not models_dir:
+            raise ValueError("MODELS_DIR environment variable is not set")
+            
+        model_path = os.path.join(models_dir, 'credit_scoring_model.npz')
+        logger.info(f"Loading model from: {model_path}")
+        
+        if not os.path.exists(model_path):
+            raise FileNotFoundError(f"Model file not found at: {model_path}")
+            
         model.load(model_path)
+        logger.info("Model loaded successfully")
         return model
     except Exception as e:
+        logger.error(f"Error loading model: {str(e)}", exc_info=True)
         raise HTTPException(status_code=500, detail=f"Error loading model: {str(e)}")
 
 # Preprocess input data
 def preprocess_input(data: CreditScoreInput):
-    # Convert input data to DataFrame
-    input_dict = data.model_dump()
-    df = pd.DataFrame([input_dict])
-    
-    # Process the data using the input processing pipeline
-    processed_df = process_input_data(df)
-    
-    # Standardize the data
-    standardized_df = standardize_data(processed_df)
-    
-    # Convert to numpy array for prediction
-    features = standardized_df.values
-    
-    return features
+    try:
+        # Convert input data to DataFrame
+        logger.info("Converting input data to DataFrame")
+        input_dict = data.model_dump()
+        df = pd.DataFrame([input_dict])
+        logger.info(f"Input DataFrame shape: {df.shape}")
+        
+        # Process the data using the input processing pipeline
+        logger.info("Processing input data")
+        processed_df = process_input_data(df)
+        logger.info(f"Processed DataFrame shape: {processed_df.shape}")
+        
+        # Standardize the data
+        logger.info("Standardizing data")
+        standardized_df = standardize_data(processed_df)
+        logger.info(f"Standardized DataFrame shape: {standardized_df.shape}")
+        
+        # Convert to numpy array for prediction
+        features = standardized_df.values
+        logger.info(f"Final features shape: {features.shape}")
+        
+        return features
+    except Exception as e:
+        logger.error(f"Error in preprocessing: {str(e)}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Error preprocessing data: {str(e)}")
 
 @app.post("/predict")
 async def predict_credit_score(data: CreditScoreInput):
     try:
         # Load model if not already loaded
         if model.dense1 is None:
+            logger.info("Loading model...")
             load_model()
         
         # Preprocess input using the data cleaning pipeline
+        logger.info("Preprocessing input data...")
         features = preprocess_input(data)
+        logger.info(f"Processed features shape: {features.shape}")
         
         # Make prediction
+        logger.info("Making prediction...")
         prediction, confidence = model.predict(features)
+        logger.info(f"Prediction: {prediction}, Confidence: {confidence}")
         
         # Map prediction to credit score category
         credit_score_map = {0: "Poor", 1: "Standard", 2: "Good"}
@@ -147,6 +181,7 @@ async def predict_credit_score(data: CreditScoreInput):
             "confidence": f"{confidence * 100:.2f}%"
         }
     except Exception as e:
+        logger.error(f"Error during prediction: {str(e)}", exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/")
