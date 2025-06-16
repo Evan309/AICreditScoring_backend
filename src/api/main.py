@@ -7,7 +7,7 @@ from typing import Optional
 import os
 
 
-from data.data_cleaning import process_data, standardize_data
+from data.data_cleaning import process_input_data, standardize_data
 from models.NeuralNetwork import Layer_Dense, Activation_ReLU, Activation_Softmax
 
 # Initialize FastAPI app
@@ -114,8 +114,8 @@ def preprocess_input(data: CreditScoreInput):
     input_dict = data.model_dump()
     df = pd.DataFrame([input_dict])
     
-    # Process the data using the existing pipeline
-    processed_df = process_data(df)
+    # Process the data using the input processing pipeline
+    processed_df = process_input_data(df)
     
     # Standardize the data
     standardized_df = standardize_data(processed_df)
@@ -152,5 +152,3 @@ async def predict_credit_score(data: CreditScoreInput):
 @app.get("/")
 async def root():
     return {"message": "Credit Score Prediction API is running"}
-
-
