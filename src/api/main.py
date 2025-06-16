@@ -5,10 +5,7 @@ import numpy as np
 import pandas as pd
 from typing import Optional
 import os
-import sys
 
-# Add the src directory to the Python path
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from data.data_cleaning import process_data, standardize_data
 from models.NeuralNetwork import Layer_Dense, Activation_ReLU, Activation_Softmax
@@ -104,7 +101,8 @@ model = CreditScoreModel()
 # Load model
 def load_model():
     try:
-        model_path = os.path.join(os.path.dirname(__file__), '../../src/models/credit_scoring_model.npz')
+        models_dir = os.getenv("MODELS_DIR")
+        model_path = os.path.join(models_dir, '/credit_scoring_model.npz')
         model.load(model_path)
         return model
     except Exception as e:
@@ -113,7 +111,7 @@ def load_model():
 # Preprocess input data
 def preprocess_input(data: CreditScoreInput):
     # Convert input data to DataFrame
-    input_dict = data.dict()
+    input_dict = data.model_dump()
     df = pd.DataFrame([input_dict])
     
     # Process the data using the existing pipeline
