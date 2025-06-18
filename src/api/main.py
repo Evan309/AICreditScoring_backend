@@ -42,18 +42,18 @@ class CreditScoreInput(BaseModel):
     Changed_Credit_Limit: Optional[float] = None
     Credit_History_Age: Optional[str] = None
     Outstanding_Debt: Optional[float] = None
-    Number_of_Delayed_Payment: Optional[float] = None
+    Num_of_Delayed_Payment: Optional[float] = None
     Credit_Mix: Optional[str] = None
     Credit_Utilization_Ratio: Optional[float] = None
-    Delay_From_Due_Date: Optional[float] = None
-    Number_of_Loans: Optional[float] = None
+    Delay_From_due_date: Optional[float] = None
+    Num_of_Loan: Optional[float] = None
     Interest_Rate: Optional[float] = None
-    Total_EMI_Per_Month: Optional[float] = None
-    Loan_Type: Optional[str] = None
-    Payment_of_Minimum_Amount: Optional[str] = None
+    Total_EMI_per_month: Optional[float] = None
+    Type_of_Loan: Optional[str] = None
+    Payment_of_Min_Amount: Optional[str] = None
     Spend_Level: Optional[str] = None
     Payment_Size: Optional[str] = None
-    Amount_Invested_Monthly: Optional[float] = None
+    Amount_invested_monthly: Optional[float] = None
 
 class CreditScoreModel:
     def __init__(self):
