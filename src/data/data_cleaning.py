@@ -62,13 +62,22 @@ def convert_age(df):
     return df
 
 # Convert Credit_History_Age from string format to months
-def convert_credit_history_age(age_str):
-    # Split the string into years and months
-    parts = age_str.replace(" and ", " ").split()
-    years = int(parts[0])
-    months = int(parts[2])
-    # Convert to total months
-    return years * 12 + months
+def convert_credit_history_age(age_val):
+    # If it's already an integer or float, return as int
+    if isinstance(age_val, (int, float)):
+        return int(age_val)
+    try:
+        # Try to parse string like "1 Year and 11 Months"
+        parts = age_val.replace(" and ", " ").split()
+        years = int(parts[0])
+        months = int(parts[2])
+        return years * 12 + months
+    except Exception:
+        # If parsing fails, try to convert directly to int
+        try:
+            return int(age_val)
+        except Exception:
+            return 0
 
 # One-hot encode occupation types
 def one_hot_encode_occupations(df):
