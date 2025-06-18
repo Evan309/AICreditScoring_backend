@@ -13,7 +13,7 @@ DATA_DIR = os.getenv("DATA_DIR")
 # Initialize preprocessors
 mlb = MultiLabelBinarizer()
 scaler = StandardScaler()
-ohe = OneHotEncoder(drop='first', sparse=False, handle_unknown='ignore')
+ohe = OneHotEncoder(drop='first', sparse_output=False, handle_unknown='ignore')
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
