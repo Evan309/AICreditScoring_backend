@@ -45,11 +45,11 @@ class CreditScoreInput(BaseModel):
     Num_of_Delayed_Payment: Optional[float] = None
     Credit_Mix: Optional[str] = None
     Credit_Utilization_Ratio: Optional[float] = None
-    Delay_From_due_date: Optional[float] = None
+    Delay_from_due_date: Optional[float] = None
     Num_of_Loan: Optional[float] = None
     Interest_Rate: Optional[float] = None
     Total_EMI_per_month: Optional[float] = None
-    Type_of_Loan: Optional[str] = None
+    Loan_Type: Optional[str] = None
     Payment_of_Min_Amount: Optional[str] = None
     Spend_Level: Optional[str] = None
     Payment_Size: Optional[str] = None

@@ -4,11 +4,11 @@ from dotenv import load_dotenv
 from sklearn.preprocessing import MultiLabelBinarizer, StandardScaler
 import logging
 import os
+import joblib
 
 # retrieve file path from env
 load_dotenv()
-train_file_path = os.getenv("TRAIN_FILE_PATH")
-test_file_path = os.getenv("TEST_FILE_PATH")
+DATA_DIR = os.getenv("DATA_DIR")
 
 # Initialize preprocessors
 mlb = MultiLabelBinarizer()
@@ -16,6 +16,33 @@ scaler = StandardScaler()
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
+
+def save_preprocessors():
+    """Save the fitted preprocessors to disk."""
+    models_dir = os.getenv("MODELS_DIR")
+    if not models_dir:
+        raise ValueError("MODELS_DIR environment variable is not set")
+    
+    joblib.dump(mlb, os.path.join(models_dir, 'multilabel_binarizer.pkl'))
+    joblib.dump(scaler, os.path.join(models_dir, 'standard_scaler.pkl'))
+    logging.info("Preprocessors saved successfully")
+
+def load_preprocessors():
+    """Load the fitted preprocessors from disk."""
+    models_dir = os.getenv("MODELS_DIR")
+    if not models_dir:
+        raise ValueError("MODELS_DIR environment variable is not set")
+    
+    mlb_path = os.path.join(models_dir, 'multilabel_binarizer.pkl')
+    scaler_path = os.path.join(models_dir, 'standard_scaler.pkl')
+    
+    if not os.path.exists(mlb_path) or not os.path.exists(scaler_path):
+        raise FileNotFoundError("Preprocessor files not found. Please run training first.")
+    
+    global mlb, scaler
+    mlb = joblib.load(mlb_path)
+    scaler = joblib.load(scaler_path)
+    logging.info("Preprocessors loaded successfully")
 
 def strip_values(df, column_names):
     """Strips excess characters and replaces specified values in the given columns."""
@@ -35,9 +62,13 @@ def convert_age(df):
     return df
 
 # Convert Credit_History_Age from string format to months
-def convert_credit_history_age(df):
-    df["Credit_History_Age"] = df["Credit_History_Age"].str.replace(" and", "").str.split().apply(lambda s: int(s[0]) * 12 + int(s[2]))
-    return df
+def convert_credit_history_age(age_str):
+    # Split the string into years and months
+    parts = age_str.replace(" and ", " ").split()
+    years = int(parts[0])
+    months = int(parts[2])
+    # Convert to total months
+    return years * 12 + months
 
 # One-hot encode occupation types
 def one_hot_encode_occupations(df):
@@ -129,7 +160,7 @@ def process_data(data_path):
 
     # convert formats
     df = convert_age(df)
-    df = convert_credit_history_age(df)
+    df["Credit_History_Age"] = df["Credit_History_Age"].apply(convert_credit_history_age)
 
     # encode categorical features
     df = one_hot_encode_occupations(df)
@@ -168,7 +199,7 @@ def standardize_data(df):
                    "Total_EMI_per_month", "Amount_invested_monthly", "Monthly_Balance",
                    "Changed_Credit_Limit", "Num_of_Delayed_Payment"]
     
-    # Standardize the numerical columns
+    # Standardize the numerical columns using the loaded scaler
     standardized_data[num_columns] = scaler.fit_transform(df[num_columns])
     
     # Shift data up by min value so that values are positive
@@ -181,19 +212,13 @@ def standardize_data(df):
     logging.info("Data standardized successfully.")
     return standardized_data
 
-def convert_credit_history_age(age_str):
-    """Convert credit history age from string format to months."""
-    try:
-        # Split the string into years and months
-        parts = age_str.replace(" and ", " ").split()
-        years = int(parts[0])
-        months = int(parts[2])
-        # Convert to total months
-        return years * 12 + months
-    except (ValueError, IndexError):
-        return 0
-
 def process_input_data(df):
+    # Load preprocessors if not already loaded
+    try:
+        load_preprocessors()
+    except FileNotFoundError:
+        logging.warning("Preprocessor files not found. Using default encoding.")
+    
     # Log the input columns
     print("Input DataFrame columns:", df.columns.tolist())
     
@@ -206,16 +231,16 @@ def process_input_data(df):
     df["Num_Bank_Accounts"] = df["Num_Bank_Accounts"].fillna(0)
     df["Num_Credit_Card"] = df["Num_Credit_Card"].fillna(0)
     df["Interest_Rate"] = df["Interest_Rate"].fillna(0)
-    df["Num_of_Loan"] = df["Number_of_Loans"].fillna(0)
-    df["Delay_from_due_date"] = df["Delay_From_Due_Date"].fillna(0)
-    df["Num_of_Delayed_Payment"] = df["Number_of_Delayed_Payment"].fillna(0)
+    df["Num_of_Loan"] = df["Num_of_Loan"].fillna(0)
+    df["Delay_from_due_date"] = df["Delay_from_due_date"].fillna(0)
+    df["Num_of_Delayed_Payment"] = df["Num_of_Delayed_Payment"].fillna(0)
     df["Changed_Credit_Limit"] = df["Changed_Credit_Limit"].fillna(0)
     df["Outstanding_Debt"] = df["Outstanding_Debt"].fillna(0)
     df["Credit_Utilization_Ratio"] = df["Credit_Utilization_Ratio"].fillna(0)
     df["Credit_History_Age"] = df["Credit_History_Age"].fillna("0 Years and 0 Months")
-    df["Payment_of_Minimum_Amount"] = df["Payment_of_Minimum_Amount"].fillna("No")
-    df["Total_EMI_per_month"] = df["Total_EMI_Per_Month"].fillna(0)
-    df["Amount_invested_monthly"] = df["Amount_Invested_Monthly"].fillna(0)
+    df["Payment_of_Min_Amount"] = df["Payment_of_Min_Amount"].fillna("No")
+    df["Total_EMI_per_month"] = df["Total_EMI_per_month"].fillna(0)
+    df["Amount_invested_monthly"] = df["Amount_invested_monthly"].fillna(0)
     df["Monthly_Balance"] = df["Monthly_Balance"].fillna(0)
     
     # Convert age from years to months
@@ -229,9 +254,9 @@ def process_input_data(df):
     df = pd.concat([df, occupation_dummies], axis=1)
     df = df.drop("Occupation", axis=1)
     
-    # One-hot encode Loan_Type using MultiLabelBinarizer
+    # One-hot encode Loan_Type using the loaded MultiLabelBinarizer
     df["Type_of_Loan"] = df["Loan_Type"].apply(lambda s: list(set([loan.strip() for loan in s.replace("and", "").split(",") if loan.strip() != ""])))
-    encoded_loan = mlb.fit_transform(df["Type_of_Loan"])
+    encoded_loan = mlb.transform(df["Type_of_Loan"])  # Use transform instead of fit_transform
     loan_df = pd.DataFrame(encoded_loan, columns=mlb.classes_, index=df.index)
     df = pd.concat([df, loan_df], axis=1)
     df = df.drop(["Loan_Type", "Type_of_Loan"], axis=1)
@@ -242,7 +267,7 @@ def process_input_data(df):
     
     # Ordinal encode Payment_of_Minimum_Amount
     payment_map = {"No": 0, "Yes": 1}
-    df["Payment_of_Minimum_Amount"] = df["Payment_of_Minimum_Amount"].map(payment_map)
+    df["Payment_of_Min_Amount"] = df["Payment_of_Min_Amount"].map(payment_map)
     
     # Map Spend_Level and Payment_Size directly
     spend_mapping = {"Low": 0, "High": 1}
@@ -273,29 +298,26 @@ def process_input_data(df):
     df["Amount_invested_monthly"] = df["Amount_invested_monthly"] + 100  # Shift investment by 100
     df["Monthly_Balance"] = df["Monthly_Balance"] + 1000  # Shift balance by 1000
     
-    # Rename columns to match standardize_data
-    df = df.rename(columns={
-        "Number_of_Loans": "Num_of_Loan",
-        "Delay_From_Due_Date": "Delay_from_due_date",
-        "Number_of_Delayed_Payment": "Num_of_Delayed_Payment",
-        "Total_EMI_Per_Month": "Total_EMI_per_month",
-        "Amount_Invested_Monthly": "Amount_invested_monthly"
-    })
+    print(f"Final DataFrame shape: {df.shape}")
+    print(f"Final columns: {df.columns.tolist()}")
     
     return df
 
 def main():    
     # Load and process train and test data
-    df_train = process_data("/Users/evanshi/Desktop/Personal-Projects/AICreditScoring/data/raw/train.csv")
-    df_test = process_data("/Users/evanshi/Desktop/Personal-Projects/AICreditScoring/data/raw/test.csv")
+    df_train = process_data(DATA_DIR + "/raw/train.csv")
+    df_test = process_data(DATA_DIR + "/raw/test.csv")
 
     # Standardize the processed data
     standardized_train = standardize_data(df_train)
     standardized_test = standardize_data(df_test)
 
+    # Save the fitted preprocessors
+    save_preprocessors()
+
     # Optionally save the processed data (uncomment these lines to save)
-    standardized_train.to_csv(train_file_path, index=False)
-    standardized_test.to_csv(test_file_path, index=False)
+    standardized_train.to_csv(DATA_DIR + "/processed/processed_train", index=False)
+    standardized_test.to_csv(DATA_DIR + "/processed/processed_test", index=False)
 
 
 if __name__ == "__main__":
