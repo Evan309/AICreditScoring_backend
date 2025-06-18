@@ -29,6 +29,33 @@ def replace_values(df, column_name, value_mapping):
     df[column_name] = df[column_name].replace(value_mapping)
     return df
 
+# Convert age in years to age in months
+def convert_age(df):
+    df["Age"] = df["Age"].astype(int) * 12
+    return df
+
+# Convert Credit_History_Age from string format to months
+def convert_credit_history_age(df):
+    df["Credit_History_Age"] = df["Credit_History_Age"].str.replace(" and", "").str.split().apply(lambda s: int(s[0]) * 12 + int(s[2]))
+    return df
+
+# One-hot encode occupation types
+def one_hot_encode_occupations(df):
+    occupation_df = pd.get_dummies(df["Occupation"], prefix="Occ", drop_first=True)
+    df = pd.concat([df, occupation_df], axis=1)
+    df.drop(columns=["Occupation"], inplace=True)
+    return df
+
+# One-hot encode loan types using MultiLabelBinarizer
+def one_hot_encode_loan_types(df):
+    df["Type_of_Loan"] = df["Type_of_Loan"].apply(lambda s: list(set([loan.strip() for loan in s.replace("and", "").split(",") if loan.strip() != ""])))
+    encoded_loan = mlb.fit_transform(df["Type_of_Loan"])
+    loan_df = pd.DataFrame(encoded_loan, columns=mlb.classes_, index=df.index)
+    df = pd.concat([df, loan_df], axis=1)
+    df.drop(columns=["Type_of_Loan"], inplace=True)
+    return df
+
+
 def process_data(data_path):
     """
     Processes and cleans the dataset.
@@ -63,23 +90,13 @@ def process_data(data_path):
     # Drop any rows with NA values
     df.dropna(inplace=True)
 
-    # Convert age in years to age in months
-    df["Age"] = df["Age"].astype(int) * 12
+    # convert formats
+    df = convert_age(df)
+    df = convert_credit_history_age(df)
 
-    # Convert Credit_History_Age from string format to months
-    df["Credit_History_Age"] = df["Credit_History_Age"].str.replace(" and", "").str.split().apply(lambda s: int(s[0]) * 12 + int(s[2]))
-
-    # One-hot encode occupation types
-    occupation_df = pd.get_dummies(df["Occupation"], prefix="Occ", drop_first=True)
-    df = pd.concat([df, occupation_df], axis=1)
-    df.drop(columns=["Occupation"], inplace=True)
-
-    # One-hot encode loan types using MultiLabelBinarizer
-    df["Type_of_Loan"] = df["Type_of_Loan"].apply(lambda s: list(set([loan.strip() for loan in s.replace("and", "").split(",") if loan.strip() != ""])))
-    encoded_loan = mlb.fit_transform(df["Type_of_Loan"])
-    loan_df = pd.DataFrame(encoded_loan, columns=mlb.classes_, index=df.index)
-    df = pd.concat([df, loan_df], axis=1)
-    df.drop(columns=["Type_of_Loan"], inplace=True)
+    # encode categorical features
+    df = one_hot_encode_occupations(df)
+    df = one_hot_encode_loan_types(df)
 
     # Ordinal encode Credit_Mix and Payment_of_Min_Amount
     credit_mix_mapping = {"Bad": 0, "Standard": 1, "Good": 2}
