@@ -1,7 +1,7 @@
 import pandas as pd
 import numpy as np
 from dotenv import load_dotenv
-from sklearn.preprocessing import MultiLabelBinarizer, StandardScaler
+from sklearn.preprocessing import MultiLabelBinarizer, StandardScaler, OneHotEncoder
 import logging
 import os
 import joblib
@@ -13,6 +13,7 @@ DATA_DIR = os.getenv("DATA_DIR")
 # Initialize preprocessors
 mlb = MultiLabelBinarizer()
 scaler = StandardScaler()
+ohe = OneHotEncoder(drop='first', sparse=False, handle_unknown='ignore')
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -25,7 +26,10 @@ def save_preprocessors():
     
     joblib.dump(mlb, os.path.join(models_dir, 'multilabel_binarizer.pkl'))
     joblib.dump(scaler, os.path.join(models_dir, 'standard_scaler.pkl'))
-    logging.info("Preprocessors saved successfully")
+    joblib.dump(ohe, os.path.join(models_dir, 'occupation_ohe.pkl'))
+    # Save feature columns
+    joblib.dump(feature_columns, os.path.join(models_dir, 'feature_columns.pkl'))
+    logging.info("Preprocessors and feature columns saved successfully")
 
 def load_preprocessors():
     """Load the fitted preprocessors from disk."""
@@ -35,14 +39,18 @@ def load_preprocessors():
     
     mlb_path = os.path.join(models_dir, 'multilabel_binarizer.pkl')
     scaler_path = os.path.join(models_dir, 'standard_scaler.pkl')
+    ohe_path = os.path.join(models_dir, 'occupation_ohe.pkl')
+    feature_columns_path = os.path.join(models_dir, 'feature_columns.pkl')
     
-    if not os.path.exists(mlb_path) or not os.path.exists(scaler_path):
+    if not os.path.exists(mlb_path) or not os.path.exists(scaler_path) or not os.path.exists(ohe_path) or not os.path.exists(feature_columns_path):
         raise FileNotFoundError("Preprocessor files not found. Please run training first.")
     
-    global mlb, scaler
+    global mlb, scaler, ohe, feature_columns
     mlb = joblib.load(mlb_path)
     scaler = joblib.load(scaler_path)
-    logging.info("Preprocessors loaded successfully")
+    ohe = joblib.load(ohe_path)
+    feature_columns = joblib.load(feature_columns_path)
+    logging.info("Preprocessors and feature columns loaded successfully")
 
 def strip_values(df, column_names):
     """Strips excess characters and replaces specified values in the given columns."""
@@ -79,11 +87,15 @@ def convert_credit_history_age(age_val):
         except Exception:
             return 0
 
-# One-hot encode occupation types
-def one_hot_encode_occupations(df):
-    occupation_df = pd.get_dummies(df["Occupation"], prefix="Occ", drop_first=True)
-    df = pd.concat([df, occupation_df], axis=1)
-    df.drop(columns=["Occupation"], inplace=True)
+# Replace the pd.get_dummies-based one_hot_encode_occupations with OneHotEncoder-based
+def one_hot_encode_occupations(df, fit=False):
+    global ohe
+    if fit:
+        occupation_encoded = ohe.fit_transform(df[["Occupation"]])
+    else:
+        occupation_encoded = ohe.transform(df[["Occupation"]])
+    occupation_df = pd.DataFrame(occupation_encoded, columns=ohe.get_feature_names_out(["Occupation"]), index=df.index)
+    df = pd.concat([df.drop("Occupation", axis=1), occupation_df], axis=1)
     return df
 
 # One-hot encode loan types using MultiLabelBinarizer
@@ -172,7 +184,7 @@ def process_data(data_path):
     df["Credit_History_Age"] = df["Credit_History_Age"].apply(convert_credit_history_age)
 
     # encode categorical features
-    df = one_hot_encode_occupations(df)
+    df = one_hot_encode_occupations(df, fit=True)
     df = one_hot_encode_loan_types(df)
     df = ordinal_encode_credit_mix(df)
     df = ordinal_encode_payement_of_min_amount(df)
@@ -191,6 +203,10 @@ def process_data(data_path):
 
     # Convert all values to float
     df = df.astype(float)
+
+    # After all processing, save the feature columns
+    global feature_columns
+    feature_columns = df.columns.tolist()
 
     logging.info("Data processed successfully.")
     return df
@@ -258,10 +274,8 @@ def process_input_data(df):
     # Convert Credit_History_Age from string to months
     df["Credit_History_Age"] = df["Credit_History_Age"].apply(convert_credit_history_age)
     
-    # One-hot encode occupation with prefix "Occ" and drop_first=True
-    occupation_dummies = pd.get_dummies(df["Occupation"], prefix="Occ", drop_first=True)
-    df = pd.concat([df, occupation_dummies], axis=1)
-    df = df.drop("Occupation", axis=1)
+    # One-hot encode Occupation using loaded OneHotEncoder (fit=False)
+    df = one_hot_encode_occupations(df, fit=False)
     
     # One-hot encode Loan_Type using the loaded MultiLabelBinarizer
     df["Type_of_Loan"] = df["Loan_Type"].apply(lambda s: list(set([loan.strip() for loan in s.replace("and", "").split(",") if loan.strip() != ""])))
@@ -306,6 +320,12 @@ def process_input_data(df):
     df["Total_EMI_per_month"] = df["Total_EMI_per_month"] + 100  # Shift EMI by 100
     df["Amount_invested_monthly"] = df["Amount_invested_monthly"] + 100  # Shift investment by 100
     df["Monthly_Balance"] = df["Monthly_Balance"] + 1000  # Shift balance by 1000
+    
+    # Add missing columns and reorder to match training
+    for col in feature_columns:
+        if col not in df.columns:
+            df[col] = 0
+    df = df[feature_columns]
     
     print(f"Final DataFrame shape: {df.shape}")
     print(f"Final columns: {df.columns.tolist()}")
