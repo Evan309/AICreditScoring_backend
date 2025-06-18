@@ -55,6 +55,43 @@ def one_hot_encode_loan_types(df):
     df.drop(columns=["Type_of_Loan"], inplace=True)
     return df
 
+# ordinal encode Credit_mix
+def ordinal_encode_credit_mix(df):
+    credit_mix_mapping = {"Bad": 0, "Standard": 1, "Good": 2}
+    df["Credit_Mix"] = df["Credit_Mix"].map(credit_mix_mapping)
+    return df
+
+# ordinal encode Payment_of_Min_Amount
+def ordinal_encode_payement_of_min_amount(df):
+    yes_no_mapping = {"No": 0, "Yes": 1}
+    df["Payment_of_Min_Amount"] = df["Payment_of_Min_Amount"].map(yes_no_mapping)
+    return df
+
+
+# parse Payment_Behaviour
+def parse_payment_behaviour(df):
+
+    def split_payment_behaviour(s):
+        parts = s.split('_')
+        return parts[0], parts[2]
+
+    df[['Spend_Level', 'Payment_Size']] = df['Payment_Behaviour'].apply(lambda s: pd.Series(split_payment_behaviour(s)))
+    df.drop(columns=["Payment_Behaviour"], inplace=True)
+    return df
+
+
+# one-hot encode Spend_Level
+def one_hot_encode_spend_level(df):
+    spend_mapping = {"Low": 0, "High": 1}
+    df["Spend_Level"] = df["Spend_Level"].map(spend_mapping)
+    return df
+
+# one-hot encode Payment_Size
+def one_hot_encode_payment_size(df):
+    size_mapping = {"Small": 0, "Medium": 1, "Large": 2}
+    df["Payment_Size"] = df["Payment_Size"].map(size_mapping)
+    return df
+
 
 def process_data(data_path):
     """
@@ -97,24 +134,15 @@ def process_data(data_path):
     # encode categorical features
     df = one_hot_encode_occupations(df)
     df = one_hot_encode_loan_types(df)
+    df = ordinal_encode_credit_mix(df)
+    df = ordinal_encode_payement_of_min_amount(df)
 
-    # Ordinal encode Credit_Mix and Payment_of_Min_Amount
-    credit_mix_mapping = {"Bad": 0, "Standard": 1, "Good": 2}
-    df["Credit_Mix"] = df["Credit_Mix"].map(credit_mix_mapping)
-    yes_no_mapping = {"No": 0, "Yes": 1}
-    df["Payment_of_Min_Amount"] = df["Payment_of_Min_Amount"].map(yes_no_mapping)
+    # parse payment_behaviour
+    df = parse_payment_behaviour(df)
 
-    # One-hot encode Payment_Behaviour
-    def parse_payment_behaviour(s):
-        parts = s.split('_')
-        return parts[0], parts[2]
-
-    df[['Spend_Level', 'Payment_Size']] = df['Payment_Behaviour'].apply(lambda s: pd.Series(parse_payment_behaviour(s)))
-    spend_mapping = {"Low": 0, "High": 1}
-    size_mapping = {"Small": 0, "Medium": 1, "Large": 2}
-    df["Spend_Level"] = df["Spend_Level"].map(spend_mapping)
-    df["Payment_Size"] = df["Payment_Size"].map(size_mapping)
-    df.drop(columns=["Payment_Behaviour"], inplace=True)
+    # encode spend level and payment size
+    df = one_hot_encode_spend_level(df)
+    df = one_hot_encode_payment_size(df)
 
     # If train data, encode Credit_Score
     if "Credit_Score" in df.columns:
