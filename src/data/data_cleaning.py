@@ -87,7 +87,7 @@ def convert_credit_history_age(age_val):
         except Exception:
             return 0
 
-# Replace the pd.get_dummies-based one_hot_encode_occupations with OneHotEncoder-based
+# one hot encode occupations with sklearn ohe
 def one_hot_encode_occupations(df, fit=False):
     global ohe
     if fit:
@@ -229,7 +229,7 @@ def standardize_data(df):
     
     # Shift data up by min value so that values are positive
     for col in num_columns:
-        min_value = standardized_data[col].values.min()  # Get numpy array first, then min
+        min_value = standardized_data[col].values.min()
         if min_value < 0:
             shift_value = abs(min_value) + 1
             standardized_data[col] += shift_value
@@ -279,7 +279,7 @@ def process_input_data(df):
     
     # One-hot encode Loan_Type using the loaded MultiLabelBinarizer
     df["Type_of_Loan"] = df["Loan_Type"].apply(lambda s: list(set([loan.strip() for loan in s.replace("and", "").split(",") if loan.strip() != ""])))
-    encoded_loan = mlb.transform(df["Type_of_Loan"])  # Use transform instead of fit_transform
+    encoded_loan = mlb.transform(df["Type_of_Loan"]) 
     loan_df = pd.DataFrame(encoded_loan, columns=mlb.classes_, index=df.index)
     df = pd.concat([df, loan_df], axis=1)
     df = df.drop(["Loan_Type", "Type_of_Loan"], axis=1)
@@ -304,22 +304,22 @@ def process_input_data(df):
             df[col] = pd.to_numeric(df[col], errors='coerce').fillna(0)
     
     # Apply the same shift values as used during training
-    df["Age"] = df["Age"] + 240  # Shift age by 240 months (20 years)
-    df["Annual_Income"] = df["Annual_Income"] + 10000  # Shift annual income by 10000
-    df["Monthly_Inhand_Salary"] = df["Monthly_Inhand_Salary"] + 1000  # Shift monthly salary by 1000
-    df["Num_Bank_Accounts"] = df["Num_Bank_Accounts"] + 1  # Shift bank accounts by 1
-    df["Num_Credit_Card"] = df["Num_Credit_Card"] + 1  # Shift credit cards by 1
-    df["Interest_Rate"] = df["Interest_Rate"] + 5  # Shift interest rate by 5
-    df["Num_of_Loan"] = df["Num_of_Loan"] + 1  # Shift number of loans by 1
-    df["Delay_from_due_date"] = df["Delay_from_due_date"] + 5  # Shift delay by 5 days
-    df["Num_of_Delayed_Payment"] = df["Num_of_Delayed_Payment"] + 1  # Shift delayed payments by 1
-    df["Changed_Credit_Limit"] = df["Changed_Credit_Limit"] + 1000  # Shift credit limit change by 1000
-    df["Outstanding_Debt"] = df["Outstanding_Debt"] + 1000  # Shift outstanding debt by 1000
-    df["Credit_Utilization_Ratio"] = df["Credit_Utilization_Ratio"] + 10  # Shift utilization ratio by 10
-    df["Credit_History_Age"] = df["Credit_History_Age"] + 12  # Shift credit history age by 12 months
-    df["Total_EMI_per_month"] = df["Total_EMI_per_month"] + 100  # Shift EMI by 100
-    df["Amount_invested_monthly"] = df["Amount_invested_monthly"] + 100  # Shift investment by 100
-    df["Monthly_Balance"] = df["Monthly_Balance"] + 1000  # Shift balance by 1000
+    df["Age"] = df["Age"] + 240 
+    df["Annual_Income"] = df["Annual_Income"] + 10000  
+    df["Monthly_Inhand_Salary"] = df["Monthly_Inhand_Salary"] + 1000 
+    df["Num_Bank_Accounts"] = df["Num_Bank_Accounts"] + 1 
+    df["Num_Credit_Card"] = df["Num_Credit_Card"] + 1  
+    df["Interest_Rate"] = df["Interest_Rate"] + 5  
+    df["Num_of_Loan"] = df["Num_of_Loan"] + 1 
+    df["Delay_from_due_date"] = df["Delay_from_due_date"] + 5  
+    df["Num_of_Delayed_Payment"] = df["Num_of_Delayed_Payment"] + 1  
+    df["Changed_Credit_Limit"] = df["Changed_Credit_Limit"] + 1000  
+    df["Outstanding_Debt"] = df["Outstanding_Debt"] + 1000  
+    df["Credit_Utilization_Ratio"] = df["Credit_Utilization_Ratio"] + 10 
+    df["Credit_History_Age"] = df["Credit_History_Age"] + 12  
+    df["Total_EMI_per_month"] = df["Total_EMI_per_month"] + 100  
+    df["Amount_invested_monthly"] = df["Amount_invested_monthly"] + 100  
+    df["Monthly_Balance"] = df["Monthly_Balance"] + 1000 
     
     # Add missing columns and reorder to match training
     for col in feature_columns:
