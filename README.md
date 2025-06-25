@@ -81,9 +81,6 @@ AICreditScoring_backend/
 └── README.md
 ```
 
-## License
-This project is licensed under the MIT License.
-
 ## About Me
 I'm Evan, a passionate software engineer and machine learning enthusiast. This project demonstrates my ability to:
 - Build production-grade APIs with FastAPI
@@ -92,5 +89,3 @@ I'm Evan, a passionate software engineer and machine learning enthusiast. This p
 - Integrate custom ML models into real-world applications
 - Write clean, maintainable, and well-documented code
 - Debug and iterate quickly in real-world scenarios
-
-I'm eager to bring these skills to a forward-thinking team. Let's connect! 
